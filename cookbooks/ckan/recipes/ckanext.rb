@@ -6,17 +6,27 @@ SOURCE_DIR = "#{ENV['VIRTUAL_ENV']}/src"
 CKAN_DIR = "#{SOURCE_DIR}/ckan"
 
 # Create Database
-pg_user "ckanuser" do
-  privileges :superuser => true, :createdb => true, :login => true
+connection_info = {
+    :host     => '127.0.0.1',
+    :port     => node['postgresql']['config']['port'],
+    :username => 'postgres',
+    :password => node['postgresql']['password']['postgres']
+  }
+
+postgresql_database_user "ckanuser" do
+  connection connection_info
+  privileges [:superuser, :createdb, :login]
   password "pass"
 end
 
-pg_user "readonlyuser" do
-  privileges :superuser => false, :createdb => false, :login => true
+postgresql_database_user "readonlyuser" do
+  connection connection_info
+  privileges [:login]
   password "pass"
 end
 
-pg_database "datastore" do
+postgresql_database "datastore" do
+  connection connection_info
   owner "ckanuser"
   encoding "utf8"
 end

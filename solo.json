@@ -1,13 +1,19 @@
 {
   "run_list": [
-    "recipe[apt]",
+    "recipe[postgresql::ruby]",
     "recipe[ckan]",
     "recipe[ckan::ckanext]"
   ],
   "user": "ckan",
   "repository": "https://github.com/okfn/ckan.git",
   "postgresql": {
-    "version": "9.1",
-    "ssl": false
+    "version": "9.3",
+    "ssl": false,
+    "password": {
+      "postgres": "p4ssw0rd"
+    },
+    "config": {
+      "ssl": "off"
+    }
   }
 }

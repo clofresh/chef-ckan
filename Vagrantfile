@@ -4,23 +4,22 @@
 root = File.expand_path("..", __FILE__)
 chef_json = File.join(root, "solo.json")
 
-Vagrant::Config.run do |config|
-  config.vm.box = "precise64"
-  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+Vagrant.configure("2") do |config|
+  config.vm.box = "opscode-ubuntu-12.04"
+  config.vm.box_url = "https://opscode-vm-bento.s3.amazonaws.com/vagrant/virtualbox/opscode_ubuntu-12.04_chef-provisionerless.box"
 
-  # Check https://github.com/mitchellh/vagrant/issues/713
-  config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/v-root", "1"]
-  config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/openspending", "1"]
-  config.vm.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/openspendingjs", "1"]
-  # Check https://github.com/mitchellh/vagrant/issues/516
-  config.vm.customize(["modifyvm", :id, "--nictype1", "Am79C973"])
+  # Must have vagrant-omnibus plugin: vagrant plugin install vagrant-omnibus
+  config.omnibus.chef_version = :latest
 
-  config.vm.customize do |vm|
-    vm.memory_size = 1024
+  # Must have vagrant-berkshelf plugin: vagrant plugin install vagrant-berkshelf
+  config.berkshelf.enabled = true
+
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 1024
   end
 
-  config.vm.forward_port 8983, 8983
-  config.vm.forward_port 5000, 5000
+  config.vm.network "forwarded_port", guest: 8983, host: 8983
+  config.vm.network "forwarded_port", guest: 5000, host: 5000
 
   config.vm.provision :chef_solo do |chef|
     chef.cookbooks_path = "cookbooks"

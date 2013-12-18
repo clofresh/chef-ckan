@@ -1,7 +1,6 @@
 include_recipe "git"
 include_recipe "python"
 include_recipe "postgresql::server"
-include_recipe "postgresql::libpq"
 include_recipe "java"
 
 USER = node[:user]
@@ -52,7 +51,7 @@ python_pip CKAN_DIR do
 end
 
 # Install CKAN's requirements
-python_pip "#{CKAN_DIR}/pip-requirements.txt" do
+python_pip "#{CKAN_DIR}/requirements.txt" do
   user USER
   group USER
   virtualenv ENV['VIRTUAL_ENV']
@@ -61,21 +60,22 @@ python_pip "#{CKAN_DIR}/pip-requirements.txt" do
 end
 
 # Create Database
-pg_user "ckanuser" do
-  privileges :superuser => true, :createdb => true, :login => true
+connection_info = {
+    :host     => '127.0.0.1',
+    :port     => node['postgresql']['config']['port'],
+    :username => 'postgres',
+    :password => node['postgresql']['password']['postgres']
+  }
+postgresql_database_user "ckanuser" do
+  connection connection_info
+  privileges [:superuser, :createdb, :login]
   password "pass"
 end
 
-pg_database "ckan_dev" do
+postgresql_database 'ckan_dev' do
+  connection connection_info
   owner "ckanuser"
   encoding "utf8"
-end
-
-# Configure database variables
-execute "Set up database's urls" do
-  user USER
-  cwd CKAN_DIR
-  command "sed -i -e 's/.*sqlalchemy.url.*/sqlalchemy.url=postgresql:\\/\\/ckanuser:pass@localhost\\/ckan_dev/;' development.ini"
 end
 
 # Install and configure Solr
@@ -102,20 +102,18 @@ execute "make paster's config file and setup solr_url and ckan.site_id" do
   creates "#{CKAN_DIR}/development.ini"
 end
 
+# Configure database variables
+execute "Set up database's urls" do
+  user USER
+  cwd CKAN_DIR
+  command "sed -i -e 's/.*sqlalchemy.url.*/sqlalchemy.url=postgresql:\\/\\/ckanuser:pass@localhost\\/ckan_dev/;' development.ini"
+end
+
 # Generate database
 execute "create database tables" do
   user USER
   cwd CKAN_DIR
   command "paster --plugin=ckan db init"
-end
-
-# Run tests
-python_pip "#{CKAN_DIR}/pip-requirements-test.txt" do
-  user USER
-  group USER
-  virtualenv ENV['VIRTUAL_ENV']
-  options "-r"
-  action :install
 end
 
 execute "running tests with SQLite" do
